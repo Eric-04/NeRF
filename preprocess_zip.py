@@ -50,6 +50,7 @@ def process_npzfile(nerf_obj, focal=138):
         'focal' : focal
     }
 
+    os.makedirs('./data/', exist_ok=True)
     np.savez(f'./data/{nerf_obj}.npz', **dictionary)
 
 # def main():

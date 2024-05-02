@@ -22,7 +22,7 @@ def init_model(D=8, W=256):
     relu = tf.keras.layers.ReLU()    
     dense = lambda W=W, act=relu : tf.keras.layers.Dense(W, activation=act)
 
-    inputs = tf.keras.Input(shape=(3 + 3*2*L_embed)) 
+    inputs = tf.keras.Input(shape=(3 + 3*2*L_embed, )) 
     outputs = inputs
     for i in range(D):
         outputs = dense()(outputs)

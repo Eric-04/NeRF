@@ -1,16 +1,24 @@
-import os, sys
+import os
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
 
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import matplotlib.pyplot as plt
+from preprocess_zip import process_zipfile, process_npzfile
 
 def preprocess_data():
-    if not os.path.exists('./data/tiny_nerf_data.npz'):
-        raise RuntimeError("Data file does not exist. Please download the data using bash download_example_data.sh")
 
-    data = np.load('./data/tiny_nerf_data.npz')
+    process_zipfile()
+
+    nerf_objects = ['bouncingballs', 'hellwarrior', 'hook', 'jumpingjacks', 'lego', 'mutant', 'standup', 'trex']
+    for obj in nerf_objects:
+        process_npzfile(obj)
+
+    # if not os.path.exists('./bouncingballs.npz'):
+    #     raise RuntimeError("Data file does not exist. Please download the data using bash download_example_data.sh")
+
+    data = np.load('./data/bouncingballs.npz')
     images = data['images']
     poses = data['poses']
     focal = data['focal']

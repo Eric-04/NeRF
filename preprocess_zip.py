@@ -3,28 +3,24 @@ import numpy as np
 from PIL import Image
 import io
 import os
-from matplotlib import cm
 import json
 
-def process_zipfile():
-    zip_file_path = './data.zip'
-    extracted_directory = './extracted_files2/'
+extracted_directory_name = 'extracted_files'
+extracted_directory = f'./{extracted_directory_name}/'
+zip_file_path = './data.zip'
 
+def process_zipfile():
     # Open the zip file
     if not os.path.exists(extracted_directory):
         with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
             # Extract all files from the zip
-            zip_ref.extractall('extracted_files2')
+            zip_ref.extractall('extracted_files')
     else:
         print("Directory already exists. Skipping extraction.")
 
-
-def process_dict(nerf_obj, focal=138):
-    # dictionary = dict(np.load('./data/tiny_nerf_data.npz'))
-    # print(dictionary['images'].shape)
-    # print(dictionary['poses'].shape)
-    # print(dictionary['focal'].shape)
-    extracted_directory = './extracted_files2/'
+def process_npzfile(nerf_obj, focal=138):
+    if os.path.exists(f'./data/{nerf_obj}.npz'):
+        return
     images = []
     poses = []
     for root, dirs, files in os.walk(extracted_directory + f'data/{nerf_obj}/'):
@@ -32,14 +28,16 @@ def process_dict(nerf_obj, focal=138):
             if file.endswith('.png'):
                 with open(os.path.join(root, file), 'rb') as f:
                     img = Image.open(io.BytesIO(f.read()))
+                    img = img.convert('RGB')
+                    img = img.resize((100, 100), Image.LANCZOS)
                     img = np.array(img)
-                    img = np.resize(img, (100, 100, 3))
+                    img = np.array(img).astype(np.float32) / 255.0
                     images.append(img)
             elif file.endswith('.json'):
                 with open(os.path.join(root,file), 'rb') as json_file:
                     data = json.load(json_file)['frames']
                     for d in data:
-                        pose_matrix = np.array(d['transform_matrix'])
+                        pose_matrix = np.array(d['transform_matrix']).astype(np.float32)
                         poses.append(pose_matrix)
                 
     poses = np.array(poses)
@@ -52,15 +50,12 @@ def process_dict(nerf_obj, focal=138):
         'focal' : focal
     }
 
-    np.savez(f'./{nerf_obj}.npz', **dictionary)
+    np.savez(f'./data/{nerf_obj}.npz', **dictionary)
 
+# def main():
+#     print("==================Preprocessing==================")
+#     process_zipfile()
+#     process_npzfile('bouncingballs')
 
-
-
-def main():
-    print("==================Preprocessing==================")
-    process_zipfile()
-    process_dict('bouncingballs')
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

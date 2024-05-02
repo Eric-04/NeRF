@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from preprocess import preprocess_data
 from model import init_model, get_rays, render_rays
 
+import os
+
 def main():
     train_images, train_poses, test_image, test_pose, focal = preprocess_data()
     H, W = train_images.shape[1:3]
@@ -47,7 +49,8 @@ def main():
 
             psnrs.append(psnr.numpy())
             iternums.append(i)
-            
+
+            # plotting
             plt.figure(figsize=(10,4))
             plt.subplot(121)
             plt.imshow(rgb)
@@ -55,7 +58,12 @@ def main():
             plt.subplot(122)
             plt.plot(iternums, psnrs)
             plt.title('PSNR')
-            plt.show()
+            # plt.show()
+
+            # save figure to directory
+            results_dir = './results/'
+            os.makedirs(results_dir, exist_ok=True)
+            plt.savefig(os.path.join(results_dir, f'plot_{i}.png'))
 
     print('Done')
 

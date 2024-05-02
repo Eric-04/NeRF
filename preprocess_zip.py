@@ -19,11 +19,12 @@ def process_zipfile():
         print("Directory already exists. Skipping extraction.")
 
 def process_npzfile(nerf_obj, focal=138):
-    if os.path.exists(f'./data/{nerf_obj}.npz'):
-        return
+    # if os.path.exists(f'./data/{nerf_obj}.npz'):
+    #     return
     images = []
     poses = []
     for root, dirs, files in os.walk(extracted_directory + f'data/{nerf_obj}/'):
+        if files[0].endswith('.png'): files = sorted(files) # need to make sure that the images are in order
         for file in files:
             if file.endswith('.png'):
                 with open(os.path.join(root, file), 'rb') as f:
@@ -53,10 +54,10 @@ def process_npzfile(nerf_obj, focal=138):
     os.makedirs('./data/', exist_ok=True)
     np.savez(f'./data/{nerf_obj}.npz', **dictionary)
 
-# def main():
-#     print("==================Preprocessing==================")
-#     process_zipfile()
-#     process_npzfile('bouncingballs')
+def main():
+    print("==================Preprocessing==================")
+    process_zipfile()
+    process_npzfile('bouncingballs')
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()

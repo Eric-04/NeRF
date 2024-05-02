@@ -28,11 +28,7 @@ def preprocess_data():
     test_image, test_pose = images[101], poses[101]
     train_images, train_poses = images[:100,...,:3], poses[:100]
 
-    for t in train_images:
-        plt.imshow(t)
-        plt.show()
-
-    plt.imshow(test_image)
-    plt.show()
+    # plt.imshow(test_image)
+    # plt.show()
 
     return train_images, train_poses, test_image, test_pose, focal

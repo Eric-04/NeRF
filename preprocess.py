@@ -18,7 +18,7 @@ def preprocess_data():
     # if not os.path.exists('./bouncingballs.npz'):
     #     raise RuntimeError("Data file does not exist. Please download the data using bash download_example_data.sh")
 
-    data = np.load('./data/hook.npz')
+    data = np.load('./data/bouncingballs.npz')
     images = data['images']
     poses = data['poses']
     focal = data['focal']

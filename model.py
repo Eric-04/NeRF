@@ -6,7 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ipywidgets import interactive, widgets
 import imageio
+import imageio_ffmpeg
 from tqdm import tqdm
+from matplotlib.widgets import Slider
 
 L_embed = 6
 
@@ -103,9 +105,9 @@ rot_theta = lambda th: torch.tensor([
 ], dtype=torch.float32)
 
 def pose_spherical(theta, phi, radius):
-        c2w = trans_t(radius)
-        c2w = rot_phi(phi / 180. * np.pi) @ c2w
-        c2w = rot_theta(theta / 180. * np.pi) @ c2w
+        c2w = trans_t(torch.tensor(radius))
+        c2w = rot_phi(torch.tensor(phi / 180. * np.pi)) @ c2w
+        c2w = rot_theta(torch.tensor(theta / 180. * np.pi)) @ c2w
         c2w = torch.tensor([[-1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=torch.float32) @ c2w
         return c2w
 
@@ -115,30 +117,34 @@ def create_interactive_plot(H, W, focal, model, N_samples):
         c2w = pose_spherical(theta, phi, radius)
         rays_o, rays_d = get_rays(H, W, focal, c2w[:3, :4])
         rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples)
-        img = np.clip(rgb, 0, 1)
+        img = np.clip(rgb.detach().numpy(), 0, 1)
 
-        plt.figure(2, figsize=(20, 6))
-        plt.imshow(img.permute(1, 2, 0))
-        plt.show()
+        # plt.figure(2, figsize=(20, 6))
+        # plt.imshow(img)
+        # plt.show()
+    
+    fig, ax = plt.subplots(figsize=(20, 6))
+    plt.subplots_adjust(left=0.1, bottom=0.25)
 
-    sldr = lambda v, mi, ma: widgets.FloatSlider(
-        value=v,
-        min=mi,
-        max=ma,
-        step=.01,
-    )
+    ax_theta = plt.axes([0.1, 0.1, 0.65, 0.03])
+    ax_phi = plt.axes([0.1, 0.05, 0.65, 0.03])
+    ax_radius = plt.axes([0.1, 0.15, 0.65, 0.03])
 
-    names = [
-        ['theta', 100., 0., 360],
-        ['phi', -30., -90, 0],
-        ['radius', 4., 3., 5.],
-    ]
+    sldr_theta = Slider(ax_theta, 'Theta', 0, 360, valinit=100)
+    sldr_phi = Slider(ax_phi, 'Phi', -90, 0, valinit=-30)
+    sldr_radius = Slider(ax_radius, 'Radius', 3, 5, valinit=4)
 
-    interactive_plot = interactive(f, **{name: sldr(v, mi, ma) for name, v, mi, ma in names})
-    output = interactive_plot.children[-1]
-    output.layout.height = '350px'
+    def update(val):
+        theta = sldr_theta.val
+        phi = sldr_phi.val
+        radius = sldr_radius.val
+        f(theta, phi, radius)
 
-    return interactive_plot
+    sldr_theta.on_changed(update)
+    sldr_phi.on_changed(update)
+    sldr_radius.on_changed(update)
+
+    plt.show()
 
 def generate_video(model, H, W, focal, N_samples, output_file='video.mp4'):
     theta_range=(0., 360.)
@@ -147,7 +153,7 @@ def generate_video(model, H, W, focal, N_samples, output_file='video.mp4'):
         c2w = pose_spherical(th, phi=-30., radius=4.)
         rays_o, rays_d = get_rays(H, W, focal, c2w[:3, :4])
         rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples)
-        frames.append((255 * np.clip(rgb, 0, 1)).astype(np.uint8))
+        frames.append((255 * np.clip(rgb.detach().numpy(), 0, 1)).astype(np.uint8))
 
     imageio.mimwrite(output_file, frames, fps=30, quality=7)
     print(f"Video saved to '{output_file}'")

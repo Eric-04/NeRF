@@ -29,12 +29,6 @@ def main(args):
     focal = torch.tensor(focal, dtype=torch.float64)
 
     model = init_model()
-    # create interactive plot
-    if os.path.exists(f'./model/{nerf_obj}/'):
-        model.load_state_dict(torch.load(f'./model/{nerf_obj}/'))
-        create_interactive_plot(H, W, focal, model, N_samples=N_samples)
-
-
     optimizer = optim.Adam(model.parameters(), lr=5e-4)
 
     N_samples = 64
@@ -42,6 +36,13 @@ def main(args):
     psnrs = []
     iternums = []
     i_plot = 25
+
+    # create interactive plot
+    if os.path.exists(f'./model/{nerf_obj}.pth'):
+        print("model pre-trained. creating interactive plot...")
+        model.load_state_dict(torch.load(f'./model/{nerf_obj}.pth'))
+        create_interactive_plot(H, W, focal, model, N_samples=N_samples)
+        return
 
     import time
     t = time.time()
@@ -82,19 +83,20 @@ def main(args):
 
             # save figure to directory
             results_dir = './results/'
+            nerf_obj_results_dir = results_dir + f'{nerf_obj}'
             os.makedirs(results_dir, exist_ok=True)
-            nerf_obj_results_dir = results_dir + f'{args.dataset}'
+            os.makedirs(nerf_obj_results_dir, exist_ok=True)
             plt.savefig(os.path.join(nerf_obj_results_dir, f'plot_{i}.png'))
     
     # save model to directory
     model_dir = './model/'
     os.makedirs(model_dir, exist_ok=True)
-    torch.save(model.state_dict(), os.path.join(model_dir, f'{nerf_obj}'))
+    torch.save(model.state_dict(), os.path.join(model_dir, f'{nerf_obj}.pth'))
 
     # generate video
     video_dir = './video/'
     os.makedirs(video_dir, exist_ok=True)
-    generate_video(model, H, W, focal, N_samples, output_file=f'{video_dir}{nerf_obj}')
+    generate_video(model, H, W, focal, N_samples, output_file=f'{video_dir}{nerf_obj}.mp4')
 
     # create interactive plot
     create_interactive_plot(H, W, focal, model, N_samples=N_samples)

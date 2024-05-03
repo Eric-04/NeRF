@@ -19,8 +19,11 @@ def process_zipfile():
         print("Directory already exists. Skipping extraction.")
 
 def process_npzfile(nerf_obj, focal=138):
-    # if os.path.exists(f'./data/{nerf_obj}.npz'):
-    #     return
+    if os.path.exists(f'./data/{nerf_obj}.npz'):
+        return
+    if not os.path.exists(f'./extracted_files/{nerf_obj}/'):
+        raise RuntimeError("Dataset does not exist")
+
     images = []
     poses = []
     for root, dirs, files in os.walk(extracted_directory + f'data/{nerf_obj}/'):

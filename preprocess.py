@@ -7,18 +7,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from preprocess_zip import process_zipfile, process_npzfile
 
-def preprocess_data():
+def preprocess_data(nerf_obj):
 
     process_zipfile()
 
-    nerf_objects = ['bouncingballs', 'hellwarrior', 'hook', 'jumpingjacks', 'lego', 'mutant', 'standup', 'trex']
-    for obj in nerf_objects:
-        process_npzfile(obj)
+    # nerf_objects = ['bouncingballs', 'hellwarrior', 'hook', 'jumpingjacks', 'lego', 'mutant', 'standup', 'trex']
+    # for obj in nerf_objects:
+    #     process_npzfile(obj)
+
+    process_npzfile(nerf_obj)
 
     # if not os.path.exists('./bouncingballs.npz'):
     #     raise RuntimeError("Data file does not exist. Please download the data using bash download_example_data.sh")
 
-    data = np.load('./data/hook.npz')
+    data = np.load(f'./data/{nerf_obj}.npz')
     images = data['images']
     poses = data['poses']
     focal = data['focal']
@@ -32,5 +34,3 @@ def preprocess_data():
     # plt.show()
 
     return train_images, train_poses, test_image, test_pose, focal
-
-preprocess_data()

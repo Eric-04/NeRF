@@ -1,11 +1,12 @@
-import torch
-import torch.optim as optim
-from tqdm import tqdm
+import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
+
+from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
 from preprocess import preprocess_data
-from model2 import init_model, get_rays, render_rays
+from model_tensorflow import init_model, get_rays, render_rays
 
 import os
 
@@ -13,15 +14,8 @@ def main():
     train_images, train_poses, test_image, test_pose, focal = preprocess_data()
     H, W = train_images.shape[1:3]
 
-    # convert from numpy to torch tensor
-    train_images = torch.tensor(train_images, dtype=torch.float32)
-    train_poses = torch.tensor(train_poses, dtype=torch.float32)
-    test_image = torch.tensor(test_image, dtype=torch.float32)
-    test_pose = torch.tensor(test_pose, dtype=torch.float32)
-    focal = torch.tensor(focal, dtype=torch.float64)
-
     model = init_model()
-    optimizer = optim.Adam(model.parameters(), lr=5e-4)
+    optimizer = tf.keras.optimizers.Adam(5e-4)
 
     N_samples = 64
     N_iters = 1000
@@ -31,35 +25,35 @@ def main():
 
     import time
     t = time.time()
-    for i in range(N_iters + 1):
-
+    for i in range(N_iters+1):
+        
         img_i = np.random.randint(train_images.shape[0])
         target = train_images[img_i]
         pose = train_poses[img_i]
         rays_o, rays_d = get_rays(H, W, focal, pose)
-        optimizer.zero_grad()
-        rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples, rand=True)
-        loss = torch.mean((rgb - target) ** 2)
-        loss.backward()
-        optimizer.step()
-
-        if i % i_plot == 0:
+        with tf.GradientTape() as tape:
+            rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples, rand=True)
+            loss = tf.reduce_mean(tf.square(rgb - target))
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        
+        if i%i_plot==0:
             print(i, (time.time() - t) / i_plot, 'secs per iter')
             t = time.time()
-
+            
             # Render the holdout view for logging
             rays_o, rays_d = get_rays(H, W, focal, test_pose)
             rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples)
-            loss = torch.mean((rgb - test_image) ** 2)
-            psnr = -10. * torch.log10(loss)
+            loss = tf.reduce_mean(tf.square(rgb - test_image))
+            psnr = -10. * tf.math.log(loss) / tf.math.log(10.)
 
-            psnrs.append(psnr.item())
+            psnrs.append(psnr.numpy())
             iternums.append(i)
 
             # plotting
-            plt.figure(figsize=(10, 4))
+            plt.figure(figsize=(10,4))
             plt.subplot(121)
-            plt.imshow(rgb.detach().cpu().numpy())
+            plt.imshow(rgb)
             plt.title(f'Iteration: {i}')
             plt.subplot(122)
             plt.plot(iternums, psnrs)

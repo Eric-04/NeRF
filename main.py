@@ -32,7 +32,7 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=5e-4)
 
     N_samples = 64
-    N_iters = 25
+    N_iters = 1000
     psnrs = []
     iternums = []
     i_plot = 25
@@ -49,7 +49,7 @@ def main(args):
 
     import time
     t = time.time()
-    for i in range(N_iters + 1):
+    for i in tqdm(range(N_iters + 1)):
 
         img_i = np.random.randint(train_images.shape[0])
         target = train_images[img_i]

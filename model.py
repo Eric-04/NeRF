@@ -9,6 +9,8 @@ import imageio
 import imageio_ffmpeg
 from tqdm import tqdm
 from matplotlib.widgets import Slider
+import cv2
+
 
 L_embed = 6
 
@@ -147,16 +149,28 @@ def create_interactive_plot(H, W, focal, model, N_samples):
     plt.show()
 
 def generate_video(model, H, W, focal, N_samples, output_file='video.mp4'):
-    theta_range=(0., 360.)
+    theta_range = (0., 360.)
     frames = []
+    fps = 30
+
     for th in tqdm(np.linspace(theta_range[0], theta_range[1], 120, endpoint=False)):
         c2w = pose_spherical(th, phi=-30., radius=4.)
         rays_o, rays_d = get_rays(H, W, focal, c2w[:3, :4])
         rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples)
         frames.append((255 * np.clip(rgb.detach().numpy(), 0, 1)).astype(np.uint8))
 
-    imageio.mimwrite(output_file, frames, fps=30, quality=7)
-    print(f"Video saved to '{output_file}'")
+    # Determine the size of the first frame
+    height, width, _ = frames[0].shape
 
-# Usage example:
-# generate_video(model, pose_spherical, get_rays, render_rays, H, W, focal, N_samples)
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
+
+    # Write frames to video
+    for frame in frames:
+        out.write(frame)
+
+    # Release the VideoWriter object
+    out.release()
+
+    print(f"Video saved to '{output_file}'")

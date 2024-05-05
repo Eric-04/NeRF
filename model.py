@@ -106,24 +106,32 @@ rot_theta = lambda th: torch.tensor([
     [0, 0, 0, 1],
 ], dtype=torch.float32)
 
-def pose_spherical(theta, phi, radius):
-        c2w = trans_t(torch.tensor(radius))
-        c2w = rot_phi(torch.tensor(phi / 180. * np.pi)) @ c2w
-        c2w = rot_theta(torch.tensor(theta / 180. * np.pi)) @ c2w
-        c2w = torch.tensor([[-1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=torch.float32) @ c2w
-        return c2w
+from tqdm import tqdm
 
-def create_interactive_plot(H, W, focal, model, N_samples):
+def pose_spherical(theta, phi, radius):
+    c2w = trans_t(torch.tensor(radius))
+    c2w = rot_phi(torch.tensor(phi / 180. * np.pi)) @ c2w
+    c2w = rot_theta(torch.tensor(theta / 180. * np.pi)) @ c2w
+    c2w = torch.tensor([[-1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=torch.float32) @ c2w
+    return c2w
+
+def create_interactive_plot(H, W, focal, model, N_samples, pretrained = True):
+
+    theta_intv, phi_intv, radius_intv = 3, 3, 2
+    frames = {}
     
     def f(theta, phi, radius):
         c2w = pose_spherical(theta, phi, radius)
         rays_o, rays_d = get_rays(H, W, focal, c2w[:3, :4])
         rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples)
-        img = np.clip(rgb.detach().numpy(), 0, 1)
+        img = np.clip(rgb.detach().cpu().numpy(), 0, 1)
+        return img
 
-        # plt.figure(2, figsize=(20, 6))
-        # plt.imshow(img)
-        # plt.show()
+    def generate_frames(H, W, focal, model, N_samples):
+        for theta in tqdm(np.linspace(0., 360., theta_intv)):
+            for phi in np.linspace(-90., 0., phi_intv):
+                for radius in np.linspace(3., 5., radius_intv):
+                    frames[(theta, phi, radius)] = f(theta, phi, radius)
     
     fig, ax = plt.subplots(figsize=(20, 6))
     plt.subplots_adjust(left=0.1, bottom=0.25)
@@ -132,15 +140,21 @@ def create_interactive_plot(H, W, focal, model, N_samples):
     ax_phi = plt.axes([0.1, 0.05, 0.65, 0.03])
     ax_radius = plt.axes([0.1, 0.15, 0.65, 0.03])
 
-    sldr_theta = Slider(ax_theta, 'Theta', 0, 360, valinit=100)
-    sldr_phi = Slider(ax_phi, 'Phi', -90, 0, valinit=-30)
-    sldr_radius = Slider(ax_radius, 'Radius', 3, 5, valinit=4)
+    sldr_theta = Slider(ax_theta, 'Theta', 0, 360, valinit=120, valstep=360/phi_intv)
+    sldr_phi = Slider(ax_phi, 'Phi', -90, 0, valinit=-30, valstep=90/phi_intv)
+    sldr_radius = Slider(ax_radius, 'Radius', 3, 5, valinit=4, valstep=2/radius_intv)
+
+    if pretrained == True: generate_frames(H, W, focal, model, N_samples)
 
     def update(val):
         theta = sldr_theta.val
         phi = sldr_phi.val
         radius = sldr_radius.val
-        f(theta, phi, radius)
+        if pretrained == False:
+            f(theta, phi, radius)
+        else:
+            ax.imshow(frames[(theta, phi, radius)])
+
 
     sldr_theta.on_changed(update)
     sldr_phi.on_changed(update)
@@ -149,15 +163,15 @@ def create_interactive_plot(H, W, focal, model, N_samples):
     plt.show()
 
 def generate_video(model, H, W, focal, N_samples, output_file='video.mp4'):
-    theta_range = (0., 360.)
     frames = []
     fps = 30
 
-    for th in tqdm(np.linspace(theta_range[0], theta_range[1], 120, endpoint=False)):
+    # theta range (0 - 360), in 120 intervals
+    for th in tqdm(np.linspace(0., 360., 120, endpoint=False)):
         c2w = pose_spherical(th, phi=-30., radius=4.)
         rays_o, rays_d = get_rays(H, W, focal, c2w[:3, :4])
         rgb, depth, acc = render_rays(model, rays_o, rays_d, near=2., far=6., N_samples=N_samples)
-        frames.append((255 * np.clip(rgb.detach().numpy(), 0, 1)).astype(np.uint8))
+        frames.append(np.clip(rgb.detach().cpu().numpy(), 0, 1))
 
     # Determine the size of the first frame
     height, width, _ = frames[0].shape

@@ -44,12 +44,6 @@ def main(args):
         model.load_state_dict(torch.load(f'./model/{nerf_obj}.pth'))
         model.eval()
 
-        # generate video
-        video_dir = './video/'
-        os.makedirs(video_dir, exist_ok=True)
-        generate_video(model, H, W, focal, N_samples, output_file=f'{video_dir}{nerf_obj}.mp4')
-
-        
         create_interactive_plot(H, W, focal, model, N_samples=N_samples)
         return
 

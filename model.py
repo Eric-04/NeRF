@@ -133,8 +133,8 @@ def create_interactive_plot(H, W, focal, model, N_samples, nerf_obj,
                     for radius in np.linspace(3., 5., radius_intv+1):
                         key = f'{theta},{phi},{radius}'
                         frames[key] = f(theta, phi, radius)
-            with open('data.json', 'w') as file:
-                np.save(filename, frames)
+            np.save(filename, frames)
+                
         
         return frames
     
@@ -148,7 +148,6 @@ def create_interactive_plot(H, W, focal, model, N_samples, nerf_obj,
     sldr_theta = Slider(ax_theta, 'Theta', 0, 360, valinit=120, valstep=360/phi_intv)
     sldr_phi = Slider(ax_phi, 'Phi', -90, 0, valinit=-30, valstep=90/phi_intv)
     sldr_radius = Slider(ax_radius, 'Radius', 3, 5, valinit=4, valstep=2/radius_intv)
-    plt.imshow(f(120, -30, 4))
 
     if pretrained == True: frames = generate_frames()
 

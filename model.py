@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from matplotlib.widgets import Slider
 import cv2
-
+import os
 
 L_embed = 6
 
@@ -108,9 +108,8 @@ def pose_spherical(theta, phi, radius):
     c2w = torch.tensor([[-1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=torch.float32) @ c2w
     return c2w
 
-def create_interactive_plot(H, W, focal, model, N_samples, 
+def create_interactive_plot(H, W, focal, model, N_samples, nerf_obj,
                             theta_intv = 18, phi_intv = 9, radius_intv = 4, pretrained = True):
-    frames = {}
     
     def f(theta, phi, radius):
         c2w = pose_spherical(theta, phi, radius)
@@ -120,10 +119,24 @@ def create_interactive_plot(H, W, focal, model, N_samples,
         return img
 
     def generate_frames():
-        for theta in tqdm(np.linspace(0., 360., theta_intv+1)):
-            for phi in np.linspace(-90., 0., phi_intv+1):
-                for radius in np.linspace(3., 5., radius_intv+1):
-                    frames[(theta, phi, radius)] = f(theta, phi, radius)
+        frames = {}
+
+        # if frames have been generated 
+        video_dir = './frames/'
+        os.makedirs(video_dir, exist_ok=True)
+        filename = f'{video_dir}{nerf_obj}:{theta_intv},{phi_intv},{radius_intv}.npy'
+        if os.path.exists(filename):
+            frames = np.load(filename, allow_pickle=True).item()
+        else:
+            for theta in tqdm(np.linspace(0., 360., theta_intv+1)):
+                for phi in np.linspace(-90., 0., phi_intv+1):
+                    for radius in np.linspace(3., 5., radius_intv+1):
+                        key = f'{theta},{phi},{radius}'
+                        frames[key] = f(theta, phi, radius)
+            with open('data.json', 'w') as file:
+                np.save(filename, frames)
+        
+        return frames
     
     fig, ax = plt.subplots(figsize=(20, 6))
     plt.subplots_adjust(left=0.1, bottom=0.25)
@@ -137,7 +150,7 @@ def create_interactive_plot(H, W, focal, model, N_samples,
     sldr_radius = Slider(ax_radius, 'Radius', 3, 5, valinit=4, valstep=2/radius_intv)
     plt.imshow(f(120, -30, 4))
 
-    if pretrained == True: generate_frames(H, W, focal, model, N_samples)
+    if pretrained == True: frames = generate_frames()
 
     def update(val):
         theta = sldr_theta.val
@@ -146,7 +159,7 @@ def create_interactive_plot(H, W, focal, model, N_samples,
         if pretrained == False:
             ax.imshow(f(theta, phi, radius))
         else:
-            ax.imshow(frames[(theta, phi, radius)])
+            ax.imshow(frames[f'{theta},{phi},{radius}'])
 
 
     sldr_theta.on_changed(update)

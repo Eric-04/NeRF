@@ -4,6 +4,7 @@ import torch.optim as optim
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from preprocess import preprocess_data
 from model import init_model, get_rays, render_rays, create_interactive_plot, generate_video
@@ -37,17 +38,17 @@ def main(args):
     iternums = []
     i_plot = 25
 
-    # create interactive plot
+    # if model pre-trained, create interactive plot
     if os.path.exists(f'./model/{nerf_obj}.pth'):
 
         print("model pre-trained. creating interactive plot...")
         model.load_state_dict(torch.load(f'./model/{nerf_obj}.pth'))
         model.eval()
 
-        create_interactive_plot(H, W, focal, model, N_samples=N_samples)
+        create_interactive_plot(H, W, focal, model, N_samples, nerf_obj)
         return
-
-    import time
+    
+    # train model
     t = time.time()
     for i in tqdm(range(N_iters + 1)):
 
@@ -102,7 +103,7 @@ def main(args):
     generate_video(model, H, W, focal, N_samples, output_file=f'{video_dir}{nerf_obj}.mp4')
 
     # create interactive plot
-    create_interactive_plot(H, W, focal, model, N_samples=N_samples)
+    create_interactive_plot(H, W, focal, model, nerf_obj, N_samples)
 
     print('Done')
 

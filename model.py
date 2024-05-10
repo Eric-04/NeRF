@@ -141,6 +141,8 @@ def create_interactive_plot(H, W, focal, model, N_samples, nerf_obj,
     fig, ax = plt.subplots(figsize=(20, 6))
     plt.subplots_adjust(left=0.1, bottom=0.25)
 
+    ax.imshow(f(120, -30, 4))
+
     ax_theta = plt.axes([0.1, 0.1, 0.65, 0.03])
     ax_phi = plt.axes([0.1, 0.05, 0.65, 0.03])
     ax_radius = plt.axes([0.1, 0.15, 0.65, 0.03])
